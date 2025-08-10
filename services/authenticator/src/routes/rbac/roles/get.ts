@@ -2,10 +2,11 @@ import { eq } from 'drizzle-orm';
 import { os } from '@/routes/os';
 import { hasPermission, resolveAuthContext } from '@/utils/authz';
 import { db } from '@/utils/db';
+import { PERMISSIONS } from '@/utils/permissions';
 
 export const getRoleHandler = os.rbac.roles.get.handler(async ({ input }) => {
   const ctx = await resolveAuthContext(input.accessToken);
-  if (!hasPermission(ctx, ['roles:get', 'roles:list'])) {
+  if (!hasPermission(ctx, [PERMISSIONS.ROLES_GET, PERMISSIONS.ROLES_LIST])) {
     return { status: 'error', message: 'Forbidden' };
   }
   const { roleId } = input;

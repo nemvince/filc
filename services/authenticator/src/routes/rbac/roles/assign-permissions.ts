@@ -3,11 +3,12 @@ import { os } from '@/routes/os';
 import { authorizationSchema } from '@/schemas/rbac';
 import { hasPermission, resolveAuthContext } from '@/utils/authz';
 import { db } from '@/utils/db';
+import { PERMISSIONS } from '@/utils/permissions';
 
 export const assignRolePermissionsHandler =
   os.rbac.roles.assignPermissions.handler(async ({ input }) => {
     const ctx = await resolveAuthContext(input.accessToken);
-    if (!hasPermission(ctx, 'roles:assignPermissions')) {
+    if (!hasPermission(ctx, PERMISSIONS.ROLES_ASSIGN_PERMISSIONS)) {
       return { status: 'error', message: 'Forbidden' };
     }
     const { roleId, permissions } = input;

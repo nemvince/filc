@@ -4,6 +4,7 @@ import { authenticationSchema } from '@/schemas/user';
 import { audit } from '@/utils/audit';
 import { hasPermission, resolveAuthContext } from '@/utils/authz';
 import { db } from '@/utils/db';
+import { PERMISSIONS } from '@/utils/permissions';
 
 export const revokeHandler = os.auth.revoke.handler(async ({ input }) => {
   const { sessionId, accessToken } = input;
@@ -28,7 +29,7 @@ export const revokeHandler = os.auth.revoke.handler(async ({ input }) => {
   }
   if (
     sess.userId !== ctx.userId &&
-    !hasPermission(ctx, 'sessions:revoke:any')
+    !hasPermission(ctx, PERMISSIONS.SESSIONS_REVOKE_ANY)
   ) {
     audit('auth.revoke.fail', {
       success: false,

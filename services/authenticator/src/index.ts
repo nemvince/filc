@@ -1,8 +1,11 @@
 import { RPCHandler } from '@orpc/server/bun-ws';
 import { serve } from 'bun';
+import { seedPermissions } from '@/utils/permissions';
 import { authenticatorRouter } from './routes';
 
 const handler = new RPCHandler(authenticatorRouter);
+
+await seedPermissions();
 
 serve({
   fetch(req, server) {

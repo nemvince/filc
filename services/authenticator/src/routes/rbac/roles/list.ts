@@ -3,11 +3,12 @@ import { os } from '@/routes/os';
 import { authorizationSchema } from '@/schemas/rbac';
 import { hasPermission, resolveAuthContext } from '@/utils/authz';
 import { db } from '@/utils/db';
+import { PERMISSIONS } from '@/utils/permissions';
 
 export const listRolesHandler = os.rbac.roles.list.handler(
   async ({ input }) => {
     const ctx = await resolveAuthContext(input.accessToken);
-    if (!hasPermission(ctx, 'roles:list')) {
+    if (!hasPermission(ctx, PERMISSIONS.ROLES_LIST)) {
       return { status: 'error', message: 'Forbidden' };
     }
     const { page, pageSize, query } = input;

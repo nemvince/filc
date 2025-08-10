@@ -3,11 +3,12 @@ import { os } from '@/routes/os';
 import { authorizationSchema } from '@/schemas/rbac';
 import { hasPermission, resolveAuthContext } from '@/utils/authz';
 import { db } from '@/utils/db';
+import { PERMISSIONS } from '@/utils/permissions';
 
 export const createPermissionHandler = os.rbac.permissions.create.handler(
   async ({ input }) => {
     const ctx = await resolveAuthContext(input.accessToken);
-    if (!hasPermission(ctx, 'permissions:create')) {
+    if (!hasPermission(ctx, PERMISSIONS.PERMISSIONS_CREATE)) {
       return { status: 'error', message: 'Forbidden' };
     }
     const { data } = input;

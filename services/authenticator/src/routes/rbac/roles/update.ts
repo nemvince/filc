@@ -3,11 +3,12 @@ import { os } from '@/routes/os';
 import { authorizationSchema } from '@/schemas/rbac';
 import { hasPermission, resolveAuthContext } from '@/utils/authz';
 import { db } from '@/utils/db';
+import { PERMISSIONS } from '@/utils/permissions';
 
 export const updateRoleHandler = os.rbac.roles.update.handler(
   async ({ input }) => {
     const ctx = await resolveAuthContext(input.accessToken);
-    if (!hasPermission(ctx, 'roles:update')) {
+    if (!hasPermission(ctx, PERMISSIONS.ROLES_UPDATE)) {
       return { status: 'error', message: 'Forbidden' };
     }
     const { roleId, name, description } = input;
