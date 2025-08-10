@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import { os } from '@/routes/os';
 import { authenticationSchema } from '@/schemas/user';
 import { db } from '@/utils/db';
+import { hashPassword } from '@/utils/security';
 
 export const registerHandler = os.auth.register.handler(async ({ input }) => {
   const { username, password, email } = input;
@@ -15,9 +16,7 @@ export const registerHandler = os.auth.register.handler(async ({ input }) => {
   const userId = randomUUIDv7();
   const now = new Date();
   try {
-    const passwordHash = await globalThis.Bun.password.hash(password, {
-      algorithm: 'argon2id',
-    });
+    const passwordHash = await hashPassword(password);
     await db.transaction(async (tx) => {
       await tx.insert(authenticationSchema.user).values({
         id: userId,

@@ -1,6 +1,7 @@
 {
   "extends": "@filc/tsconfig/base.json",
   "compilerOptions": {
+    "types": ["bun"],
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]

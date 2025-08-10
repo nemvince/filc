@@ -1,8 +1,10 @@
 import { randomUUID } from 'node:crypto';
+import { password as bunPassword } from 'bun';
 import { eq } from 'drizzle-orm';
 import { os } from '@/routes/os';
 import { authenticationSchema } from '@/schemas/user';
 import { db } from '@/utils/db';
+import { generateSessionToken, hashToken } from '@/utils/security';
 
 export const loginHandler = os.auth.login.handler(async ({ input }) => {
   const { username, password } = input;
@@ -18,28 +20,40 @@ export const loginHandler = os.auth.login.handler(async ({ input }) => {
   if (!auth) {
     return { status: 'error', message: 'Invalid credentials' };
   }
-  const ok = await globalThis.Bun.password.verify(password, auth.passwordHash);
+  const ok = await bunPassword.verify(password, auth.passwordHash);
   if (!ok) {
     return { status: 'error', message: 'Invalid credentials' };
   }
   const sessionId = randomUUID();
-  const token = randomUUID();
+  const rawToken = generateSessionToken();
+  const tokenHash = await hashToken(rawToken);
   const now = new Date();
   const expiresAt = new Date(now.getTime() + 1000 * 60 * 60 * 24);
-  const sess = await db.insert(authenticationSchema.session).values({
+  await db.insert(authenticationSchema.session).values({
     id: sessionId,
-    token,
+    token: tokenHash,
     userId: existing.id,
     createdAt: now,
     updatedAt: now,
     expiresAt,
   });
+  const session = {
+    id: sessionId,
+    token: rawToken, // raw token only once
+    userId: existing.id,
+    createdAt: now,
+    updatedAt: now,
+    expiresAt,
+    ipAddress: null,
+    userAgent: null,
+    impersonatedBy: null,
+  };
   return {
     status: 'success',
     message: 'Logged in',
     data: {
       user: existing,
-      session: sess,
+      session,
     },
   };
 });
