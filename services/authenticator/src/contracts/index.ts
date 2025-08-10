@@ -12,7 +12,6 @@ import { assignRolePermissions } from './rbac/roles/assign-permissions';
 import { createRole } from './rbac/roles/create';
 import { deleteRole } from './rbac/roles/delete';
 import { getRole } from './rbac/roles/get';
-// RBAC imports
 import { listRoles } from './rbac/roles/list';
 import { updateRole } from './rbac/roles/update';
 import { assignUserRoles } from './rbac/users/assign-roles';

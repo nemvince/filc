@@ -21,6 +21,19 @@ export const user = pgTable('user', {
   active: boolean(),
 });
 
+export const userAuth = pgTable('user_auth', {
+  userId: text()
+    .primaryKey()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  passwordHash: text().notNull(),
+  createdAt: timestamp()
+    .$defaultFn(() => new Date())
+    .notNull(),
+  updatedAt: timestamp()
+    .$defaultFn(() => new Date())
+    .notNull(),
+});
+
 export const session = pgTable('session', {
   id: text().primaryKey(),
   expiresAt: timestamp().notNull(),
@@ -52,6 +65,7 @@ export const verification = pgTable('verification', {
 
 export const authenticationSchema = {
   user,
+  userAuth,
   session,
   verification,
 };

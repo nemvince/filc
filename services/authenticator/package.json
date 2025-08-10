@@ -1,5 +1,5 @@
 {
-  "name": "authenticator",
+  "name": "@filc/authenticator",
   "module": "index.ts",
   "type": "module",
   "private": true,
@@ -13,6 +13,10 @@
   },
   "peerDependencies": {
     "typescript": "^5"
+  },
+  "scripts": {
+    "lint": "biome check . --write",
+    "dev": "bun run --watch src/index.ts"
   },
   "dependencies": {
     "@orpc/server": "^1.7.11",
