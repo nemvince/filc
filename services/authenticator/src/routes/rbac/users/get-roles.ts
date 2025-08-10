@@ -1,10 +1,15 @@
 import { eq, inArray } from 'drizzle-orm';
 import { os } from '@/routes/os';
 import { authorizationSchema } from '@/schemas/rbac';
+import { hasPermission, resolveAuthContext } from '@/utils/authz';
 import { db } from '@/utils/db';
 
 export const getUserRolesHandler = os.rbac.users.getRoles.handler(
   async ({ input }) => {
+    const ctx = await resolveAuthContext(input.accessToken);
+    if (!hasPermission(ctx, ['users:getRoles', 'users:assignRoles'])) {
+      return { status: 'error', message: 'Forbidden' };
+    }
     const { userId } = input;
     const roles = await db
       .select({ roleId: authorizationSchema.userRole.roleId })

@@ -1,10 +1,15 @@
 import { eq } from 'drizzle-orm';
 import { os } from '@/routes/os';
 import { authorizationSchema } from '@/schemas/rbac';
+import { hasPermission, resolveAuthContext } from '@/utils/authz';
 import { db } from '@/utils/db';
 
 export const assignRolePermissionsHandler =
   os.rbac.roles.assignPermissions.handler(async ({ input }) => {
+    const ctx = await resolveAuthContext(input.accessToken);
+    if (!hasPermission(ctx, 'roles:assignPermissions')) {
+      return { status: 'error', message: 'Forbidden' };
+    }
     const { roleId, permissions } = input;
     // delete existing
     await db

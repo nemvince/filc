@@ -1,10 +1,15 @@
 import { count, ilike } from 'drizzle-orm';
 import { os } from '@/routes/os';
 import { authorizationSchema } from '@/schemas/rbac';
+import { hasPermission, resolveAuthContext } from '@/utils/authz';
 import { db } from '@/utils/db';
 
 export const listPermissionsHandler = os.rbac.permissions.list.handler(
   async ({ input }) => {
+    const ctx = await resolveAuthContext(input.accessToken);
+    if (!hasPermission(ctx, 'permissions:list')) {
+      return { status: 'error', message: 'Forbidden' };
+    }
     const { page, pageSize, query } = input;
     const offset = (page - 1) * pageSize;
     const where = query

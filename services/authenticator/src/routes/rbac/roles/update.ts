@@ -1,10 +1,15 @@
 import { eq } from 'drizzle-orm';
 import { os } from '@/routes/os';
 import { authorizationSchema } from '@/schemas/rbac';
+import { hasPermission, resolveAuthContext } from '@/utils/authz';
 import { db } from '@/utils/db';
 
 export const updateRoleHandler = os.rbac.roles.update.handler(
   async ({ input }) => {
+    const ctx = await resolveAuthContext(input.accessToken);
+    if (!hasPermission(ctx, 'roles:update')) {
+      return { status: 'error', message: 'Forbidden' };
+    }
     const { roleId, name, description } = input;
     const update: Partial<{
       name: string;

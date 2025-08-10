@@ -4,10 +4,18 @@ import { eq } from 'drizzle-orm';
 import { os } from '@/routes/os';
 import { authenticationSchema } from '@/schemas/user';
 import { db } from '@/utils/db';
+import { checkRateLimit } from '@/utils/rateLimit';
 import { generateSessionToken, hashToken } from '@/utils/security';
 
 export const loginHandler = os.auth.login.handler(async ({ input }) => {
   const { username, password } = input;
+  const rl = checkRateLimit(`login:${username}`, 5, 60_000); // 5/min per username
+  if (!rl.allowed) {
+    return {
+      status: 'error',
+      message: 'Too many attempts. Try later.',
+    };
+  }
   const existing = await db.query.user.findFirst({
     where: (u) => eq(u.name, username),
   });
