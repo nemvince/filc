@@ -5,7 +5,8 @@ import { baseInput, baseOutput } from '@/utils/defaults';
 export const revoke = oc
   .input(
     z.object({
-      ...baseInput.shape,
+      accessToken: baseInput.shape.accessToken,
+      source: baseInput.shape.source,
       sessionId: z.string(),
     })
   )

@@ -17,6 +17,7 @@ export const login = oc
         .object({
           user: userSchema.select,
           session: sessionSchema.select,
+          refreshToken: z.string(),
         })
         .optional(),
     })

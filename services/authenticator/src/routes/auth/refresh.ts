@@ -1,43 +1,85 @@
 import { eq } from 'drizzle-orm';
 import { os } from '@/routes/os';
 import { authenticationSchema } from '@/schemas/user';
+import { audit } from '@/utils/audit';
 import { db } from '@/utils/db';
 import { generateSessionToken, hashToken } from '@/utils/security';
 
 export const refreshHandler = os.auth.refresh.handler(async ({ input }) => {
-  const { accessToken } = input;
-  const accessTokenHash = await hashToken(accessToken);
-  const existing = await db.query.session.findFirst({
-    where: (sess) => eq(sess.token, accessTokenHash),
+  const { refreshToken } = input;
+  const refreshHash = await hashToken(refreshToken);
+  const existingRefresh = await db.query.refreshSession.findFirst({
+    where: (r) => eq(r.token, refreshHash),
   });
-  if (!existing) {
-    return { status: 'error', message: 'Invalid session' };
+  if (!existingRefresh) {
+    audit('auth.refresh.fail', {
+      success: false,
+      meta: { reason: 'not_found' },
+    });
+    return { status: 'error', message: 'Invalid token' } as const;
+  }
+  if (existingRefresh.expiresAt.getTime() <= Date.now()) {
+    audit('auth.refresh.fail', {
+      success: false,
+      actor: existingRefresh.userId,
+      meta: { reason: 'expired' },
+    });
+    return { status: 'error', message: 'Expired token' } as const;
+  }
+  const session = await db.query.session.findFirst({
+    where: (s) => eq(s.id, existingRefresh.sessionId),
+  });
+  if (!session) {
+    audit('auth.refresh.fail', {
+      success: false,
+      actor: existingRefresh.userId,
+      meta: { reason: 'session_missing' },
+    });
+    return { status: 'error', message: 'Session missing' } as const;
   }
   const now = new Date();
-  if (existing.expiresAt.getTime() <= now.getTime()) {
-    return { status: 'error', message: 'Expired session' };
-  }
-  const expiresAt = new Date(now.getTime() + 1000 * 60 * 60 * 24);
-  const newRawToken = generateSessionToken();
-  const newTokenHash = await hashToken(newRawToken);
-  const updateResult = await db
-    .update(authenticationSchema.session)
-    .set({ token: newTokenHash, updatedAt: now, expiresAt })
-    .where(eq(authenticationSchema.session.id, existing.id));
-  if (!updateResult) {
-    return { status: 'error', message: 'Session update failed' };
-  }
-  const updated = await db.query.session.findFirst({
-    where: (sess) => eq(sess.id, existing.id),
+  const newAccessToken = generateSessionToken();
+  const newAccessHash = await hashToken(newAccessToken);
+  const newAccessExpires = new Date(now.getTime() + 1000 * 60 * 15);
+  const newRefreshToken = generateSessionToken(48);
+  const newRefreshHash = await hashToken(newRefreshToken);
+  const newRefreshExpires = new Date(now.getTime() + 1000 * 60 * 60 * 24 * 30);
+  await db.transaction(async (tx) => {
+    await tx
+      .update(authenticationSchema.session)
+      .set({
+        token: newAccessHash,
+        updatedAt: now,
+        expiresAt: newAccessExpires,
+      })
+      .where(eq(authenticationSchema.session.id, session.id));
+    await tx
+      .update(authenticationSchema.refreshSession)
+      .set({
+        token: newRefreshHash,
+        updatedAt: now,
+        expiresAt: newRefreshExpires,
+      })
+      .where(eq(authenticationSchema.refreshSession.id, existingRefresh.id));
   });
-  if (!updated) {
-    return { status: 'error', message: 'Session update failed' };
+  const updatedSession = await db.query.session.findFirst({
+    where: (s) => eq(s.id, session.id),
+  });
+  if (!updatedSession) {
+    return { status: 'error', message: 'Session update failed' } as const;
   }
+  audit('auth.refresh.success', {
+    success: true,
+    actor: existingRefresh.userId,
+    meta: { sessionId: session.id },
+  });
   return {
     status: 'success',
     message: 'Refreshed',
     data: {
-      session: { ...updated, token: newRawToken }, // return new raw token
+      session: { ...updatedSession, token: newAccessToken },
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
     },
   };
 });

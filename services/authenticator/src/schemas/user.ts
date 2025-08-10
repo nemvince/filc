@@ -63,11 +63,26 @@ export const verification = pgTable('verification', {
   verificationCode: text().notNull(),
 });
 
+export const refreshSession = pgTable('refresh_session', {
+  id: text().primaryKey(),
+  sessionId: text()
+    .notNull()
+    .references(() => session.id, { onDelete: 'cascade' }),
+  userId: text()
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  token: text().notNull().unique(), // hashed refresh token
+  createdAt: timestamp().notNull(),
+  updatedAt: timestamp().notNull(),
+  expiresAt: timestamp().notNull(),
+});
+
 export const authenticationSchema = {
   user,
   userAuth,
   session,
   verification,
+  refreshSession,
 };
 
 export const userSchema = {
@@ -86,4 +101,10 @@ export const verificationSchema = {
   insert: createInsertSchema(verification),
   select: createSelectSchema(verification),
   update: createUpdateSchema(verification),
+};
+
+export const refreshSessionSchema = {
+  insert: createInsertSchema(refreshSession),
+  select: createSelectSchema(refreshSession),
+  update: createUpdateSchema(refreshSession),
 };

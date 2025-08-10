@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import { os } from '@/routes/os';
 import { authenticationSchema } from '@/schemas/user';
 import { db } from '@/utils/db';
-import { checkRateLimit } from '@/utils/rateLimit';
+import { checkRateLimit } from '@/utils/rate-limit';
 import { hashPassword } from '@/utils/security';
 
 export const registerHandler = os.auth.register.handler(async ({ input }) => {

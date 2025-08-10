@@ -3,8 +3,9 @@ import { password as bunPassword } from 'bun';
 import { eq } from 'drizzle-orm';
 import { os } from '@/routes/os';
 import { authenticationSchema } from '@/schemas/user';
+import { audit } from '@/utils/audit';
 import { db } from '@/utils/db';
-import { checkRateLimit } from '@/utils/rateLimit';
+import { checkRateLimit } from '@/utils/rate-limit';
 import { generateSessionToken, hashToken } from '@/utils/security';
 
 export const loginHandler = os.auth.login.handler(async ({ input }) => {
@@ -20,48 +21,75 @@ export const loginHandler = os.auth.login.handler(async ({ input }) => {
     where: (u) => eq(u.name, username),
   });
   if (!existing) {
-    return { status: 'error', message: 'Invalid credentials' };
+    audit('auth.login.fail', { success: false, meta: { username } });
+    return { status: 'error', message: 'Invalid credentials' } as const;
   }
   const auth = await db.query.userAuth.findFirst({
     where: (ua) => eq(ua.userId, existing.id),
   });
   if (!auth) {
-    return { status: 'error', message: 'Invalid credentials' };
+    audit('auth.login.fail', { success: false, meta: { username } });
+    return { status: 'error', message: 'Invalid credentials' } as const;
   }
   const ok = await bunPassword.verify(password, auth.passwordHash);
   if (!ok) {
-    return { status: 'error', message: 'Invalid credentials' };
+    audit('auth.login.fail', {
+      success: false,
+      actor: existing.id,
+      meta: { username },
+    });
+    return { status: 'error', message: 'Invalid credentials' } as const;
   }
   const sessionId = randomUUID();
-  const rawToken = generateSessionToken();
-  const tokenHash = await hashToken(rawToken);
+  const rawAccessToken = generateSessionToken();
+  const accessTokenHash = await hashToken(rawAccessToken);
+  const rawRefreshToken = generateSessionToken(48);
+  const refreshTokenHash = await hashToken(rawRefreshToken);
   const now = new Date();
-  const expiresAt = new Date(now.getTime() + 1000 * 60 * 60 * 24);
-  await db.insert(authenticationSchema.session).values({
-    id: sessionId,
-    token: tokenHash,
-    userId: existing.id,
-    createdAt: now,
-    updatedAt: now,
-    expiresAt,
+  const accessExpiresAt = new Date(now.getTime() + 1000 * 60 * 15); // 15m
+  const refreshExpiresAt = new Date(now.getTime() + 1000 * 60 * 60 * 24 * 30); // 30d
+  await db.transaction(async (tx) => {
+    await tx.insert(authenticationSchema.session).values({
+      id: sessionId,
+      token: accessTokenHash,
+      userId: existing.id,
+      createdAt: now,
+      updatedAt: now,
+      expiresAt: accessExpiresAt,
+    });
+    await tx.insert(authenticationSchema.refreshSession).values({
+      id: randomUUID(),
+      sessionId,
+      userId: existing.id,
+      token: refreshTokenHash,
+      createdAt: now,
+      updatedAt: now,
+      expiresAt: refreshExpiresAt,
+    });
   });
   const session = {
     id: sessionId,
-    token: rawToken, // raw token only once
+    token: rawAccessToken, // raw token only once
     userId: existing.id,
     createdAt: now,
     updatedAt: now,
-    expiresAt,
+    expiresAt: accessExpiresAt,
     ipAddress: null,
     userAgent: null,
     impersonatedBy: null,
   };
+  audit('auth.login.success', {
+    success: true,
+    actor: existing.id,
+    meta: { sessionId },
+  });
   return {
     status: 'success',
     message: 'Logged in',
     data: {
       user: existing,
       session,
+      refreshToken: rawRefreshToken,
     },
   };
 });
