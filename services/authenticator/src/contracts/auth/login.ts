@@ -1,5 +1,6 @@
 import { oc } from '@orpc/contract';
 import { z } from 'zod';
+import { sessionSchema, userSchema } from '@/schemas/user';
 import { baseOutput } from '@/utils/defaults';
 
 export const login = oc
@@ -14,15 +15,8 @@ export const login = oc
       ...baseOutput.shape,
       data: z
         .object({
-          user: z.object({
-            // TODO: Add actual user schema here
-            id: z.uuid(),
-          }),
-          session: z.object({
-            accessToken: z.string(),
-            refreshToken: z.string(),
-            expires: z.number(),
-          }),
+          user: userSchema.select,
+          session: sessionSchema.select,
         })
         .optional(),
     })

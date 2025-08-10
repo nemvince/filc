@@ -1,5 +1,6 @@
 import { oc } from '@orpc/contract';
 import { z } from 'zod';
+import { sessionSchema, userSchema } from '@/schemas/user';
 import { baseInput, baseOutput } from '@/utils/defaults';
 
 export const introspect = oc.input(baseInput).output(
@@ -7,19 +8,8 @@ export const introspect = oc.input(baseInput).output(
     ...baseOutput.shape,
     data: z
       .object({
-        session: z
-          .object({
-            accessToken: z.string(),
-            refreshToken: z.string(),
-            expires: z.number(),
-          })
-          .optional(),
-        user: z
-          .object({
-            id: z.uuid(),
-            // TODO: Add actual user schema here
-          })
-          .optional(),
+        session: sessionSchema.select,
+        user: userSchema.select,
       })
       .optional(),
   })

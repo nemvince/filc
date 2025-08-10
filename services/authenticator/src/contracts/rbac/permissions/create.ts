@@ -1,19 +1,18 @@
 import { oc } from '@orpc/contract';
 import { z } from 'zod';
+import { permissionSchema } from '@/schemas/rbac';
 import { baseInput, baseOutput } from '@/utils/defaults';
-import { permissionSchema } from './list';
 
 export const createPermission = oc
   .input(
     z.object({
       ...baseInput.shape,
-      name: permissionSchema.shape.name,
-      description: permissionSchema.shape.description,
+      data: permissionSchema.insert,
     })
   )
   .output(
     z.object({
       ...baseOutput.shape,
-      data: permissionSchema.optional(),
+      data: permissionSchema.select.optional(),
     })
   );

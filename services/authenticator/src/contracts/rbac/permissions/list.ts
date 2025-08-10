@@ -1,13 +1,7 @@
 import { oc } from '@orpc/contract';
 import { z } from 'zod';
+import { permissionSchema } from '@/schemas/rbac';
 import { baseInput, baseOutput } from '@/utils/defaults';
-
-export const permissionSchema = z.object({
-  name: z.string().min(1).max(128),
-  description: z.string().max(256).nullable().optional(),
-  createdAt: z.iso.datetime(),
-  updatedAt: z.iso.datetime(),
-});
 
 export const listPermissions = oc
   .input(
@@ -23,7 +17,7 @@ export const listPermissions = oc
       ...baseOutput.shape,
       data: z
         .object({
-          items: z.array(permissionSchema),
+          items: z.array(permissionSchema.select),
           page: z.number(),
           pageSize: z.number(),
           total: z.number(),
