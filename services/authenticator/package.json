@@ -1,0 +1,23 @@
+{
+  "name": "authenticator",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "exports": {
+    "./contracts/*": "./src/contracts/*.ts",
+    "./schemas/*": "./src/schemas/*.ts"
+  },
+  "devDependencies": {
+    "@filc/tsconfig": "workspace:^",
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@orpc/server": "^1.7.11",
+    "drizzle-orm": "^0.44.4",
+    "drizzle-zod": "^0.8.3",
+    "zod": "^4.0.17"
+  }
+}
